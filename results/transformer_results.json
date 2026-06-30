@@ -1,0 +1,32 @@
+{
+  "t5-small": {
+    "accuracy": 0.6259,
+    "macro_f1": 0.6226,
+    "auc": 0.799,
+    "mcc": 0.4399
+  },
+  "pubmedbert": {
+    "accuracy": 0.8143,
+    "macro_f1": 0.8159,
+    "auc": 0.9384,
+    "mcc": 0.7227
+  },
+  "clinicalbert": {
+    "accuracy": 0.8017,
+    "macro_f1": 0.8022,
+    "auc": 0.9255,
+    "mcc": 0.7027
+  },
+  "distilbert": {
+    "accuracy": 0.725,
+    "macro_f1": 0.7259,
+    "auc": 0.8866,
+    "mcc": 0.5886
+  },
+  "roberta": {
+    "accuracy": 0.8017,
+    "macro_f1": 0.8015,
+    "auc": 0.9331,
+    "mcc": 0.7025
+  }
+}

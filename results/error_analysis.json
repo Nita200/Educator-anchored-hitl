@@ -1,0 +1,309 @@
+{
+  "per_class_f1": {
+    "pubmedbert": {
+      "f1_pre": [
+        0.7785787847579815,
+        0.8737430167597765,
+        0.7955010224948875
+      ],
+      "f1_post": [
+        0.7384615384615385,
+        0.8614072494669509,
+        0.7831325301204819
+      ],
+      "delta_f1": [
+        -0.04011724629644298,
+        -0.012335767292825595,
+        -0.012368492374405626
+      ],
+      "report_pre": {
+        "safe": {
+          "precision": 0.7605633802816901,
+          "recall": 0.7974683544303798,
+          "f1-score": 0.7785787847579815,
+          "support": 474.0
+        },
+        "unsafe": {
+          "precision": 0.9287410926365796,
+          "recall": 0.8248945147679325,
+          "f1-score": 0.8737430167597765,
+          "support": 474.0
+        },
+        "ambiguous": {
+          "precision": 0.7718253968253969,
+          "recall": 0.820675105485232,
+          "f1-score": 0.7955010224948875,
+          "support": 474.0
+        },
+        "accuracy": 0.8143459915611815,
+        "macro avg": {
+          "precision": 0.8203766232478888,
+          "recall": 0.8143459915611815,
+          "f1-score": 0.8159409413375486,
+          "support": 1422.0
+        },
+        "weighted avg": {
+          "precision": 0.8203766232478888,
+          "recall": 0.8143459915611815,
+          "f1-score": 0.8159409413375486,
+          "support": 1422.0
+        }
+      },
+      "report_post": {
+        "safe": {
+          "precision": 0.7706422018348624,
+          "recall": 0.7088607594936709,
+          "f1-score": 0.7384615384615385,
+          "support": 474.0
+        },
+        "unsafe": {
+          "precision": 0.8706896551724138,
+          "recall": 0.8523206751054853,
+          "f1-score": 0.8614072494669509,
+          "support": 474.0
+        },
+        "ambiguous": {
+          "precision": 0.7471264367816092,
+          "recall": 0.8227848101265823,
+          "f1-score": 0.7831325301204819,
+          "support": 474.0
+        },
+        "accuracy": 0.7946554149085795,
+        "macro avg": {
+          "precision": 0.7961527645962952,
+          "recall": 0.7946554149085795,
+          "f1-score": 0.7943337726829904,
+          "support": 1422.0
+        },
+        "weighted avg": {
+          "precision": 0.7961527645962951,
+          "recall": 0.7946554149085795,
+          "f1-score": 0.7943337726829903,
+          "support": 1422.0
+        }
+      }
+    },
+    "clinicalbert": {
+      "f1_pre": [
+        0.764021164021164,
+        0.8733905579399142,
+        0.7714581178903827
+      ],
+      "f1_post": [
+        0.6393606393606394,
+        0.7763713080168776,
+        0.6860335195530727
+      ],
+      "delta_f1": [
+        -0.12466052466052469,
+        -0.09701924992303657,
+        -0.08542459833730998
+      ],
+      "report_pre": {
+        "safe": {
+          "precision": 0.7664543524416136,
+          "recall": 0.7616033755274262,
+          "f1-score": 0.764021164021164,
+          "support": 474.0
+        },
+        "unsafe": {
+          "precision": 0.888646288209607,
+          "recall": 0.8586497890295358,
+          "f1-score": 0.8733905579399142,
+          "support": 474.0
+        },
+        "ambiguous": {
+          "precision": 0.7565922920892495,
+          "recall": 0.7869198312236287,
+          "f1-score": 0.7714581178903827,
+          "support": 474.0
+        },
+        "accuracy": 0.8023909985935302,
+        "macro avg": {
+          "precision": 0.8038976442468234,
+          "recall": 0.8023909985935301,
+          "f1-score": 0.8029566132838203,
+          "support": 1422.0
+        },
+        "weighted avg": {
+          "precision": 0.8038976442468234,
+          "recall": 0.8023909985935302,
+          "f1-score": 0.8029566132838203,
+          "support": 1422.0
+        }
+      },
+      "report_post": {
+        "safe": {
+          "precision": 0.6072106261859582,
+          "recall": 0.6751054852320675,
+          "f1-score": 0.6393606393606394,
+          "support": 474.0
+        },
+        "unsafe": {
+          "precision": 0.7763713080168776,
+          "recall": 0.7763713080168776,
+          "f1-score": 0.7763713080168776,
+          "support": 474.0
+        },
+        "ambiguous": {
+          "precision": 0.7292161520190024,
+          "recall": 0.6476793248945147,
+          "f1-score": 0.6860335195530727,
+          "support": 474.0
+        },
+        "accuracy": 0.6997187060478199,
+        "macro avg": {
+          "precision": 0.7042660287406127,
+          "recall": 0.69971870604782,
+          "f1-score": 0.7005884889768632,
+          "support": 1422.0
+        },
+        "weighted avg": {
+          "precision": 0.7042660287406127,
+          "recall": 0.6997187060478199,
+          "f1-score": 0.7005884889768632,
+          "support": 1422.0
+        }
+      }
+    },
+    "roberta": {
+      "f1_pre": [
+        0.760593220338983,
+        0.8670157068062827,
+        0.7788359788359789
+      ],
+      "f1_post": [
+        0.7267552182163188,
+        0.8449197860962567,
+        0.6970760233918128
+      ],
+      "delta_f1": [
+        -0.03383800212266419,
+        -0.022095920710025974,
+        -0.08175995544416603
+      ],
+      "report_pre": {
+        "safe": {
+          "precision": 0.7638297872340426,
+          "recall": 0.7573839662447257,
+          "f1-score": 0.760593220338983,
+          "support": 474.0
+        },
+        "unsafe": {
+          "precision": 0.8607068607068608,
+          "recall": 0.8734177215189873,
+          "f1-score": 0.8670157068062827,
+          "support": 474.0
+        },
+        "ambiguous": {
+          "precision": 0.7813163481953291,
+          "recall": 0.7763713080168776,
+          "f1-score": 0.7788359788359789,
+          "support": 474.0
+        },
+        "accuracy": 0.8023909985935302,
+        "macro avg": {
+          "precision": 0.8019509987120775,
+          "recall": 0.8023909985935301,
+          "f1-score": 0.8021483019937482,
+          "support": 1422.0
+        },
+        "weighted avg": {
+          "precision": 0.8019509987120775,
+          "recall": 0.8023909985935302,
+          "f1-score": 0.8021483019937482,
+          "support": 1422.0
+        }
+      },
+      "report_post": {
+        "safe": {
+          "precision": 0.6603448275862069,
+          "recall": 0.8080168776371308,
+          "f1-score": 0.7267552182163188,
+          "support": 474.0
+        },
+        "unsafe": {
+          "precision": 0.8568329718004338,
+          "recall": 0.8333333333333334,
+          "f1-score": 0.8449197860962567,
+          "support": 474.0
+        },
+        "ambiguous": {
+          "precision": 0.7821522309711286,
+          "recall": 0.6286919831223629,
+          "f1-score": 0.6970760233918128,
+          "support": 474.0
+        },
+        "accuracy": 0.7566807313642757,
+        "macro avg": {
+          "precision": 0.7664433434525897,
+          "recall": 0.7566807313642757,
+          "f1-score": 0.7562503425681295,
+          "support": 1422.0
+        },
+        "weighted avg": {
+          "precision": 0.7664433434525897,
+          "recall": 0.7566807313642757,
+          "f1-score": 0.7562503425681294,
+          "support": 1422.0
+        }
+      }
+    }
+  },
+  "error_patterns": {
+    "pubmedbert": {
+      "pre_hitl": {
+        "safe\u2192ambiguous": 81,
+        "ambiguous\u2192safe": 70,
+        "unsafe\u2192safe": 49,
+        "unsafe\u2192ambiguous": 34,
+        "ambiguous\u2192unsafe": 15,
+        "safe\u2192unsafe": 15
+      },
+      "post_hitl": {
+        "safe\u2192ambiguous": 102,
+        "ambiguous\u2192safe": 60,
+        "unsafe\u2192safe": 40,
+        "safe\u2192unsafe": 36,
+        "unsafe\u2192ambiguous": 30,
+        "ambiguous\u2192unsafe": 24
+      }
+    },
+    "clinicalbert": {
+      "pre_hitl": {
+        "safe\u2192ambiguous": 90,
+        "ambiguous\u2192safe": 73,
+        "unsafe\u2192safe": 37,
+        "unsafe\u2192ambiguous": 30,
+        "ambiguous\u2192unsafe": 28,
+        "safe\u2192unsafe": 23
+      },
+      "post_hitl": {
+        "ambiguous\u2192safe": 120,
+        "safe\u2192ambiguous": 95,
+        "unsafe\u2192safe": 87,
+        "safe\u2192unsafe": 59,
+        "ambiguous\u2192unsafe": 47,
+        "unsafe\u2192ambiguous": 19
+      }
+    },
+    "roberta": {
+      "pre_hitl": {
+        "safe\u2192ambiguous": 79,
+        "ambiguous\u2192safe": 75,
+        "safe\u2192unsafe": 36,
+        "unsafe\u2192safe": 36,
+        "ambiguous\u2192unsafe": 31,
+        "unsafe\u2192ambiguous": 24
+      },
+      "post_hitl": {
+        "ambiguous\u2192safe": 142,
+        "safe\u2192ambiguous": 59,
+        "unsafe\u2192safe": 55,
+        "ambiguous\u2192unsafe": 34,
+        "safe\u2192unsafe": 32,
+        "unsafe\u2192ambiguous": 24
+      }
+    }
+  }
+}

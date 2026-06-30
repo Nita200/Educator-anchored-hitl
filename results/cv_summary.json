@@ -1,0 +1,62 @@
+{
+  "pubmedbert": {
+    "n_folds_completed": 5,
+    "seed_accuracy": {
+      "mean": 0.8251799999999999,
+      "std": 0.005849923076417339
+    },
+    "final_accuracy": {
+      "mean": 0.83064,
+      "std": 0.002141588195708973
+    },
+    "min_accuracy": {
+      "mean": 0.82068,
+      "std": 0.00566476830947215
+    },
+    "auc_range": {
+      "mean": 0.0021600000000000065,
+      "std": 0.0003666060555964353
+    },
+    "mean_rounds": 19.2
+  },
+  "clinicalbert": {
+    "n_folds_completed": 5,
+    "seed_accuracy": {
+      "mean": 0.7837,
+      "std": 0.013827942724787368
+    },
+    "final_accuracy": {
+      "mean": 0.78468,
+      "std": 0.008012839696387277
+    },
+    "min_accuracy": {
+      "mean": 0.77734,
+      "std": 0.01210596547161768
+    },
+    "auc_range": {
+      "mean": 0.002860000000000018,
+      "std": 0.0011359577456930264
+    },
+    "mean_rounds": 20.0
+  },
+  "roberta": {
+    "n_folds_completed": 5,
+    "seed_accuracy": {
+      "mean": 0.78874,
+      "std": 0.006748807302034915
+    },
+    "final_accuracy": {
+      "mean": 0.79016,
+      "std": 0.006909587541959351
+    },
+    "min_accuracy": {
+      "mean": 0.7777999999999999,
+      "std": 0.0027647784721383977
+    },
+    "auc_range": {
+      "mean": 0.0029999999999999805,
+      "std": 0.0005513619500835682
+    },
+    "mean_rounds": 19.8
+  }
+}

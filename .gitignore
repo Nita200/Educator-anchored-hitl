@@ -1,0 +1,30 @@
+# Model checkpoints (too large for git, upload to HuggingFace instead)
+models/
+*.bin
+*.safetensors
+*.pt
+*.pth
+
+# Raw data (link to source instead, or use git-lfs if small enough)
+data/*.csv
+!data/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Environment
+.env
+.DS_Store
+
+# Large logs
+*.log
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Temporary/scratch
+/tmp/

@@ -1,0 +1,20 @@
+{
+  "pubmedbert": {
+    "accuracy": 0.8354,
+    "macro_f1": 0.8356,
+    "auc": 0.9442,
+    "mcc": 0.7532
+  },
+  "clinicalbert": {
+    "accuracy": 0.801,
+    "macro_f1": 0.8015,
+    "auc": 0.9255,
+    "mcc": 0.7016
+  },
+  "roberta": {
+    "accuracy": 0.8066,
+    "macro_f1": 0.8065,
+    "auc": 0.9326,
+    "mcc": 0.7099
+  }
+}
