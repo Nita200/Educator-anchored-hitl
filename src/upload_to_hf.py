@@ -2,7 +2,7 @@
 upload_to_hf.py
 ===============
 Uploads your final HITL-trained models to HuggingFace Hub.
-Run this AFTER 04_hitl.py has completed successfully.
+Run this AFTER 04_hitl.py has completed successfully (v3 configuration).
 
 Prerequisites
 -------------
@@ -21,23 +21,28 @@ Usage
 
 What it does
 ------------
-For each HITL-trained model (T5-small, BioBERT, ClinicalBERT) the script:
+For each HITL-trained model (PubMedBERT, ClinicalBERT, RoBERTa) the script:
     1. Creates a model repository on HuggingFace Hub (if it does not exist)
     2. Uploads the model weights, tokeniser, and config
-    3. Writes a model card (README.md) describing the model
-    4. Prints the permanent URL for each uploaded model
+    3. Writes a model card (README.md) describing the model, including
+       the actual hyperparameters used and a simulation-study disclaimer
+    4. Auto-detects the actual number of HITL rounds completed for each
+       model from the saved results JSON (rounds differ per model since
+       the correction pool can exhaust at different points)
+    5. Prints the permanent URL for each uploaded model
 
 After running, add the returned URLs to the README.md in this project.
 """
 
 import argparse
+import json
 import logging
 from pathlib import Path
 
 from huggingface_hub import HfApi, create_repo, upload_folder
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-from config import HITL_MODELS, MODELS_DIR, TRANSFORMER_MODELS
+from config import HITL_MODELS, MODELS_DIR, RESULTS_DIR, TRANSFORMER_MODELS
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s — %(levelname)s — %(message)s")
@@ -45,6 +50,10 @@ logger = logging.getLogger(__name__)
 
 
 # ── Model card template ───────────────────────────────────────────────────────
+# NOTE: hyperparameters below reflect the v3 (canonical, reported) HITL
+# configuration: lr=5e-6, 50 corrections/round, 1 epoch/round, replay=100.
+# If you are uploading a model trained under a different configuration
+# (v1 or v2), update these values accordingly before running.
 
 MODEL_CARD_TEMPLATE = """---
 language:
@@ -52,8 +61,9 @@ language:
 license: mit
 tags:
   - clinical-nlp
-  - nursing-education
+  - healthcare-education
   - human-in-the-loop
+  - educator-anchored
   - text-classification
   - transformer
 datasets:
@@ -62,20 +72,39 @@ metrics:
   - accuracy
   - f1
   - roc_auc
+  - matthews_correlation
 ---
 
-# {model_name} — HITL Clinical Reasoning Classifier
+# {model_name} — Educator-Anchored HITL Clinical Reasoning Classifier
 
 This model is a fine-tuned version of [{base_model}](https://huggingface.co/{base_model})
-trained on the [MedNLI](https://physionet.org/content/mednli/1.0.0/) dataset for
-clinical reasoning classification in nursing education.
+trained on the [MedNLI](https://physionet.org/content/mednli/1.0.0/) dataset,
+used as a proxy for clinical reasoning scenarios in healthcare education.
 
-It was refined using a simulated Human-in-the-Loop (HITL) workflow across
-{hitl_rounds} rounds of incremental educator-guided corrections, as described in:
+It was refined using an **educator-anchored Human-in-the-Loop (HITL)** workflow
+across {hitl_rounds} rounds of incremental, simulated educator-guided corrections,
+as described in:
 
-> *Hybrid Intelligence for Nursing Education: A Simulation Study of an
-> Educator-in-the-Loop Approach Using Transformer and Machine Learning Models
-> for Clinical Reasoning Assessment* — [citation pending]
+> *Educator-Anchored Human-in-the-Loop Learning: A Simulation Study of
+> Transformer Models for Clinical Reasoning Assessment in Healthcare
+> Education* — [citation pending]
+
+## ⚠️ Important: Simulation Study Disclaimer
+
+This model is a **research artefact from a simulation study**, not a
+clinically validated or deployment-ready tool. Specifically:
+
+- Training data (MedNLI) is a proxy for clinical reasoning, sourced from
+  MIMIC-III clinical notes — it is **not** authentic learner submissions
+  from a healthcare education context.
+- HITL "educator corrections" during refinement were **simulated**
+  (automated ground-truth relabelling of misclassified examples), not
+  provided by real human educators.
+- Do **not** use this model for actual clinical decision-making, patient
+  safety assessment, or student grading without further validation by
+  qualified healthcare educators.
+
+This model is intended for **reproducibility and further research only**.
 
 ## Labels
 
@@ -94,23 +123,74 @@ clf = pipeline(
     "text-classification",
     model="{repo_id}",
 )
-result = clf("Patient has chest pain. Student assessment: possible GERD. "
-             "[SEP] Rationale: The patient's history is consistent with GERD "
-             "given the absence of cardiac risk factors.")
+result = clf(
+    "Patient has chest pain. Student assessment: possible GERD. "
+    "[SEP] Rationale: The patient's history is consistent with GERD "
+    "given the absence of cardiac risk factors."
+)
 print(result)
-# [{'label': 'ambiguous', 'score': 0.81}]
 ```
 
 ## Training
 
 - **Base model**: {base_model}
-- **Dataset**: MedNLI (PhysioNet credentialed access required)
-- **Split**: 70 / 10 / 20 (train / val / test)
-- **HITL rounds**: {hitl_rounds}
-- **Corrections per round**: 150
-- **Learning rate**: 2e-5
-- **Epochs per round**: 2
+- **Dataset**: MedNLI (PhysioNet credentialed access required), original
+  80/10/10 train/validation/test split preserved
+- **HITL configuration**: v3 (catastrophic-forgetting-mitigated)
+- **HITL rounds completed**: {hitl_rounds} (stops early if the correction
+  pool is exhausted before reaching the maximum of 20 rounds)
+- **Corrections per round**: 50
+- **Replay buffer size**: 100 (seed examples resampled each round to
+  anchor prior representations and prevent catastrophic forgetting)
+- **Learning rate**: 5e-6
+- **Epochs per round**: 1
+- **Seed/pool split**: 70% seed / 30% pool
+
+This configuration was selected after a systematic three-version
+comparison (see paper Section 4.3 and 5.2) showing that a naive
+incremental fine-tuning configuration (higher learning rate, larger
+correction batches, no replay buffer) produces catastrophic forgetting.
+Five-fold cross-validation (paper Section 5.7) confirms that the AUC
+stability achieved under this configuration generalises across
+independent data splits, while the magnitude of accuracy improvement in
+any single run is split-dependent.
 """
+
+
+# ── Round-count auto-detection ──────────────────────────────────────────────
+
+def get_actual_rounds_completed(model_key: str) -> int:
+    """
+    Read the actual number of HITL rounds completed for this model from
+    the canonical v3 results file, rather than assuming a fixed value.
+    Different models can exhaust their correction pool at different
+    rounds, so this avoids misrepresenting the model card.
+    """
+    results_path = RESULTS_DIR / "hitl_results_v3_seed70.json"
+    if not results_path.exists():
+        # Fall back to default path if the explicitly-named file isn't present
+        results_path = RESULTS_DIR / "hitl_results.json"
+
+    if not results_path.exists():
+        logger.warning(
+            "Could not find HITL results JSON to auto-detect round count "
+            "for %s — defaulting to 20.", model_key
+        )
+        return 20
+
+    with open(results_path) as f:
+        data = json.load(f)
+
+    if model_key not in data:
+        logger.warning(
+            "%s not found in %s — defaulting to 20.", model_key, results_path
+        )
+        return 20
+
+    # Final round number = max value in the "round" list (round 0 is the
+    # seed baseline, not an actual HITL round)
+    rounds = data[model_key]["round"]
+    return max(rounds)
 
 
 # ── Upload logic ──────────────────────────────────────────────────────────────
@@ -119,17 +199,17 @@ def upload_model(
     model_key: str,
     username:  str,
     api:       HfApi,
-    hitl_rounds: int = 20,
 ) -> str:
     """
     Upload one HITL-trained model to HuggingFace Hub.
 
     Returns the model URL.
     """
-    model_dir  = MODELS_DIR / f"{model_key}_hitl" / "final_model"
-    base_model = TRANSFORMER_MODELS[model_key]
-    repo_name  = f"hitl-nursing-{model_key}"
-    repo_id    = f"{username}/{repo_name}"
+    model_dir    = MODELS_DIR / f"{model_key}_hitl" / "final_model"
+    base_model   = TRANSFORMER_MODELS[model_key]
+    repo_name    = f"educator-anchored-hitl-{model_key}"
+    repo_id      = f"{username}/{repo_name}"
+    hitl_rounds  = get_actual_rounds_completed(model_key)
 
     if not model_dir.exists():
         logger.warning(
@@ -145,19 +225,22 @@ def upload_model(
     # Write model card
     card_path = model_dir / "README.md"
     card_path.write_text(MODEL_CARD_TEMPLATE.format(
-        model_name  = f"{model_key.upper()} HITL Clinical Reasoning",
+        model_name  = f"{model_key.upper()} Educator-Anchored HITL",
         base_model  = base_model,
         hitl_rounds = hitl_rounds,
         repo_id     = repo_id,
     ))
 
     # Upload all files in the model directory
-    logger.info("Uploading %s to %s …", model_key, repo_id)
+    logger.info(
+        "Uploading %s (%d rounds completed) to %s …",
+        model_key, hitl_rounds, repo_id
+    )
     upload_folder(
         folder_path = str(model_dir),
         repo_id     = repo_id,
         repo_type   = "model",
-        commit_message = f"Upload HITL-trained {model_key} ({hitl_rounds} rounds)",
+        commit_message = f"Upload HITL v3 {model_key} ({hitl_rounds} rounds)",
     )
 
     url = f"https://huggingface.co/{repo_id}"
@@ -169,15 +252,11 @@ def upload_model(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Upload HITL models to HuggingFace Hub."
+        description="Upload HITL v3 models to HuggingFace Hub."
     )
     parser.add_argument(
         "--username", required=True,
-        help="Your HuggingFace username (e.g. jsmith)"
-    )
-    parser.add_argument(
-        "--rounds", type=int, default=20,
-        help="Number of HITL rounds used in training (for model card)"
+        help="Your HuggingFace username (e.g. Nita200)"
     )
     args = parser.parse_args()
 
@@ -185,7 +264,7 @@ def main() -> None:
     urls = {}
 
     for model_key in HITL_MODELS:
-        url = upload_model(model_key, args.username, api, args.rounds)
+        url = upload_model(model_key, args.username, api)
         if url:
             urls[model_key] = url
 
@@ -199,3 +278,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
+    
