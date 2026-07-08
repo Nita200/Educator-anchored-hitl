@@ -1,37 +1,20 @@
 """
 upload_to_hf.py
-===============
-Uploads your final HITL-trained models to HuggingFace Hub.
-Run this AFTER 04_hitl.py has completed successfully (v3 configuration).
 
-Prerequisites
--------------
-1. Create a free account at https://huggingface.co
-2. Create an access token with WRITE permission:
-       https://huggingface.co/settings/tokens
-3. Install the HuggingFace CLI:
-       pip install huggingface_hub
-4. Log in from the terminal:
-       huggingface-cli login
-   Paste your token when prompted.
+Uploads trained HITL v3 model checkpoints to HuggingFace Hub with
+auto-generated model cards including the simulation study disclaimer
+and correct v3 hyperparameters.
 
-Usage
------
-    python src/upload_to_hf.py --username your_hf_username
+Models are already publicly available at:
+    https://huggingface.co/Nita200/educator-anchored-hitl-pubmedbert
+    https://huggingface.co/Nita200/educator-anchored-hitl-clinicalbert
+    https://huggingface.co/Nita200/educator-anchored-hitl-roberta
 
-What it does
-------------
-For each HITL-trained model (PubMedBERT, ClinicalBERT, RoBERTa) the script:
-    1. Creates a model repository on HuggingFace Hub (if it does not exist)
-    2. Uploads the model weights, tokeniser, and config
-    3. Writes a model card (README.md) describing the model, including
-       the actual hyperparameters used and a simulation-study disclaimer
-    4. Auto-detects the actual number of HITL rounds completed for each
-       model from the saved results JSON (rounds differ per model since
-       the correction pool can exhaust at different points)
-    5. Prints the permanent URL for each uploaded model
+Only needed if re-uploading after retraining. Requires HuggingFace
+write token , see PUBLISHING_GUIDE.md.
 
-After running, add the returned URLs to the README.md in this project.
+Usage:
+    python src/upload_to_hf.py --username Nita200
 """
 
 import argparse
@@ -49,11 +32,8 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 
-# ── Model card template ───────────────────────────────────────────────────────
-# NOTE: hyperparameters below reflect the v3 (canonical, reported) HITL
-# configuration: lr=5e-6, 50 corrections/round, 1 epoch/round, replay=100.
-# If you are uploading a model trained under a different configuration
-# (v1 or v2), update these values accordingly before running.
+# Model card template , reflects v3 canonical configuration.
+# Update hyperparameters if uploading a v1 or v2 model.
 
 MODEL_CARD_TEMPLATE = """---
 language:
@@ -75,7 +55,7 @@ metrics:
   - matthews_correlation
 ---
 
-# {model_name} — Educator-Anchored HITL Clinical Reasoning Classifier
+# {model_name} : Educator-Anchored HITL Clinical Reasoning Classifier
 
 This model is a fine-tuned version of [{base_model}](https://huggingface.co/{base_model})
 trained on the [MedNLI](https://physionet.org/content/mednli/1.0.0/) dataset,
@@ -123,10 +103,9 @@ clf = pipeline(
     "text-classification",
     model="{repo_id}",
 )
-result = clf(
-    "Patient has chest pain. Student assessment: possible GERD. "
-    "[SEP] Rationale: The patient's history is consistent with GERD "
-    "given the absence of cardiac risk factors."
+rresult = clf(
+    "She was evaluated by neurosurgery, deemed to be intact neurologically. "
+    "[SEP] Her neurological exam was normal and no deficits were identified."
 )
 print(result)
 ```
@@ -157,18 +136,16 @@ any single run is split-dependent.
 """
 
 
-# ── Round-count auto-detection ──────────────────────────────────────────────
+#  Round-count auto-detection
 
 def get_actual_rounds_completed(model_key: str) -> int:
     """
-    Read the actual number of HITL rounds completed for this model from
-    the canonical v3 results file, rather than assuming a fixed value.
-    Different models can exhaust their correction pool at different
-    rounds, so this avoids misrepresenting the model card.
+    Read rounds completed from the v3 results JSON rather than assuming
+    a fixed value , models exhaust their correction pool at different points.
     """
     results_path = RESULTS_DIR / "hitl_results_v3_seed70.json"
     if not results_path.exists():
-        # Fall back to default path if the explicitly-named file isn't present
+        # Fall back to default path if the explicitly named file isn't present
         results_path = RESULTS_DIR / "hitl_results.json"
 
     if not results_path.exists():
@@ -193,7 +170,7 @@ def get_actual_rounds_completed(model_key: str) -> int:
     return max(rounds)
 
 
-# ── Upload logic ──────────────────────────────────────────────────────────────
+#  Upload logic 
 
 def upload_model(
     model_key: str,
@@ -248,7 +225,7 @@ def upload_model(
     return url
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+#  Main 
 
 def main() -> None:
     parser = argparse.ArgumentParser(

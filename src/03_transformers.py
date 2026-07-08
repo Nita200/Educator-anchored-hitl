@@ -1,28 +1,24 @@
 """
 03_transformers.py
-==================
-Fine-tunes five transformer models (T5-small, BioBERT, ClinicalBERT,
-DistilBERT, RoBERTa) on the clinical reasoning classification task WITHOUT
-HITL. Establishes transformer baselines for comparison with HITL-refined models.
+------------------
+Fine-tunes five transformer models (T5-small, PubMedBERT, ClinicalBERT,
+DistilBERT, RoBERTa) on the clinical reasoning classification task.
+Establishes pre-HITL transformer baselines across accuracy, macro F1,
+AUC, and MCC for comparison with the HITL-refined models in 04_hitl.py.
 
-Usage
------
+Usage:
     python src/03_transformers.py
 
-Output
-------
+Outputs:
     results/transformer_results.json
     results/figures/transformer_comparison.png
-    models/<model_name>/   (fine-tuned model and tokeniser)
+    models/<model_key>/   (fine-tuned weights and tokeniser)
 """
 
-"""
-## config to run on GPU 1
-import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-"""
 import logging
 from pathlib import Path
+from sklearn.metrics import (
+    accuracy_score, f1_score, roc_auc_score, matthews_corrcoef)
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -44,13 +40,10 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 
-# ── Tokenisation ──────────────────────────────────────────────────────────────
+#  Tokenisation ########################################
 
 def tokenise_split(tokenizer, texts, max_length: int = MAX_INPUT_LENGTH):
-    """
-    Tokenise a list of input strings with truncation and padding.
-    Works for both encoder-only (BERT family) and encoder-decoder (T5) models.
-    """
+   
     return tokenizer(
         texts,
         padding=True,
@@ -60,7 +53,7 @@ def tokenise_split(tokenizer, texts, max_length: int = MAX_INPUT_LENGTH):
     )
 
 
-# ── Single model training and evaluation ──────────────────────────────────────
+#  Single model training and evaluation ###############################
 
 def run_transformer(
     model_key: str,
@@ -68,16 +61,7 @@ def run_transformer(
     train_df, val_df, test_df,
 ) -> dict:
     """
-    Fine-tune one transformer model and evaluate it on the held-out test set.
-
-    Parameters
-    ----------
-    model_key   : short identifier used for saving (e.g. "biobert")
-    model_name  : HuggingFace model hub path (e.g. "dmis-lab/biobert-base-cased-v1.1")
-
-    Returns
-    -------
-    dict with keys: accuracy, macro_f1, auc
+     a dict with keys: accuracy, macro_f1, auc, mcc.
     """
     logger.info("=" * 60)
     logger.info("Fine-tuning: %s (%s)", model_key, model_name)
@@ -151,7 +135,7 @@ def run_transformer(
     raw_preds = trainer.predict(test_dataset)
     logits    = raw_preds.predictions
 
-    # T5 returns a tuple (logits, past_key_values) — extract logits only
+    # T5 returns a tuple (logits, past_key_values),  extract logits only
     if isinstance(logits, tuple):
         logits = logits[0]
 
@@ -167,10 +151,10 @@ def run_transformer(
     return metrics
 
 
-# ── Visualisation ─────────────────────────────────────────────────────────────
+#  Visualization (Bar chart comparing accuracy and AUC for all transformer models)
 
 def plot_transformer_comparison(results: dict, out_path: Path) -> None:
-    """Bar chart comparing accuracy and AUC for all transformer models."""
+   
     models  = list(results.keys())
     x       = np.arange(len(models))
     width   = 0.3
@@ -203,7 +187,7 @@ def plot_transformer_comparison(results: dict, out_path: Path) -> None:
     logger.info("Transformer comparison chart saved → %s", out_path)
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# Main ##################################
 
 def main() -> None:
     set_seed(RANDOM_SEED)

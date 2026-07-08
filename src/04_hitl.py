@@ -1,32 +1,19 @@
 """
 04_hitl.py
-==========
-Implements the incremental Human-in-the-Loop (HITL) fine-tuning workflow for
-T5-small, BioBERT, and ClinicalBERT.
+----------
+Incremental educator-anchored HITL fine-tuning for PubMedBERT,
+ClinicalBERT, and RoBERTa. Each round identifies misclassified pool
+examples as simulated educator corrections, combines them with a replay
+buffer sample, and fine-tunes the model. Continues until the pool is
+exhausted. Active configuration (v1/v2/v3) is controlled via config.py.
 
-The workflow per round t:
-    1. Predict labels for the pool set with the current model θ_t
-    2. Identify misclassified examples (simulated educator corrections)
-    3. Sample min(CORRECTIONS_PER_ROUND, n_misclassified) corrected examples
-    4. Fine-tune the model on corrected examples only:
-           θ_{t+1} = θ_t − η ∇_{θ_t} L(D_corr)
-    5. Evaluate on the held-out test set (never updated)
-    6. Record accuracy, macro F1, and AUC
-
-The HITL process is repeated for HITL_ROUNDS rounds.
-Educator corrections are simulated: misclassified examples are relabelled
-using their ground-truth labels, mimicking what an educator would do.
-
-Usage
------
+Usage:
     python src/04_hitl.py
 
-Output
-------
+Output:
     results/hitl_results.json
-    results/figures/learning_curve_<model>.png
+    results/figures/learning_curve_<model_key>.png
 """
-
 import copy
 import logging
 from pathlib import Path
@@ -54,7 +41,7 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 
-# ── Data preparation ──────────────────────────────────────────────────────────
+# ─ Data preparation 
 
 def prepare_seed_and_pool(
     train_df: pd.DataFrame,
@@ -62,17 +49,8 @@ def prepare_seed_and_pool(
     random_state: int = RANDOM_SEED,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Split the training set into a seed set (for initial training) and a pool
-    (from which corrections are drawn each HITL round).
-
-    Parameters
-    ----------
-    train_df      : full training DataFrame
-    seed_fraction : proportion used as seed (default 0.70)
-
-    Returns
-    -------
-    seed_df, pool_df
+     Split training data into seed set (initial training) and pool (corrections source).
+    
     """
     seed_df = train_df.sample(
         frac=seed_fraction, random_state=random_state
@@ -82,11 +60,11 @@ def prepare_seed_and_pool(
     return seed_df, pool_df
 
 
-# ── Tokenisation helper ───────────────────────────────────────────────────────
+# Tokenisation helper  (Tokenise a DataFrame into a ClinicalDataset.)
 
 def encode(tokenizer, df: pd.DataFrame,
            max_length: int = MAX_INPUT_LENGTH):
-    """Tokenise a DataFrame into a ClinicalDataset."""
+    
     texts = [build_input_text(row) for _, row in df.iterrows()]
     enc   = tokenizer(
         texts, padding=True, truncation=True,
@@ -95,15 +73,15 @@ def encode(tokenizer, df: pd.DataFrame,
     return ClinicalDataset(enc, df["label"].tolist())
 
 
-# ── HITL core ─────────────────────────────────────────────────────────────────
+# HITL core 
 
 def baseline_train(
     model, tokenizer, seed_df: pd.DataFrame, val_df: pd.DataFrame,
     output_dir: Path,
 ) -> None:
     """
-    Train the model on the seed set to establish θ_0.
-    This is the one-time baseline training stage (Zone 1 in the workflow diagram).
+    Train on the seed set to establish the round-0 baseline model θ_0.
+   
     """
     logger.info("  Baseline training on seed set (%d samples) …", len(seed_df))
 
@@ -139,11 +117,6 @@ def predict_pool(
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Run inference on the pool and return predictions and probabilities.
-
-    Returns
-    -------
-    y_pred : (n,)   predicted integer labels
-    y_prob : (n, 3) class probabilities
     """
     dataset = encode(tokenizer, pool_df)
     args    = TrainingArguments(
@@ -168,14 +141,9 @@ def get_corrections(
     """
     Identify misclassified pool examples and select up to n of them as
     simulated educator corrections.
-
-    The 'correction' is simply restoring the ground-truth label — in a real
+    The 'correction' is  restoring the ground-truth label; in a real
     system, this is where an educator would review and relabel the examples.
 
-    Returns
-    -------
-    corrections : DataFrame of up to n corrected examples
-    remaining_pool : pool DataFrame with corrections removed
     """
     y_true     = pool_df["label"].to_numpy()
     wrong_mask = (y_pred != y_true)
@@ -204,13 +172,10 @@ def incremental_finetune(
     model, tokenizer, corrections: pd.DataFrame, output_dir: Path,
 ) -> None:
     """
-    Fine-tune the model on newly corrected samples only, keeping all
-    previously learned parameters (θ_t → θ_{t+1}).
+    Fine-tune the model on the correction batch (D_corr).
+    Replay buffer examples are merged into corrections before this call.
 
-    This lightweight update avoids memory growth from accumulating the full
-    expanded dataset, while preserving the cumulative learning effect.
-
-    Update rule:  θ_{t+1} = θ_t − η ∇_{θ_t} L(D_corr)
+    Update rule: θ_{t+1} = θ_t − η∇L(D_corr ∪ D_replay)
     """
     if corrections.empty:
         return
@@ -255,7 +220,7 @@ def evaluate_on_test(
     return compute_metrics(y_true, y_pred, y_prob)
 
 
-# ── Full HITL loop for one model ──────────────────────────────────────────────
+#  Full HITL loop for one model 
 
 def run_hitl(
     model_key: str,
@@ -267,13 +232,11 @@ def run_hitl(
     """
     Run the full HITL pipeline for a single model.
 
-    Returns
-    -------
-    A dict of learning curves: {
-        "round": [0, 1, ..., R],
-        "accuracy": [...], "macro_f1": [...], "auc": [...]
-    }
-    Round 0 = pre-HITL (seed-trained baseline).
+    Returns a learning curve dict:
+        {"round": [0, 1, ..., R], "accuracy": [...],
+         "macro_f1": [...], "auc": [...], "mcc": [...]}
+
+    Round 0 is the seed-trained baseline before any corrections.
     """
     logger.info("▶ HITL — %s", model_key)
     output_dir = MODELS_DIR / f"{model_key}_hitl"
@@ -321,7 +284,7 @@ def run_hitl(
         corrections, pool_df = get_corrections(pool_df, y_pred)
 
         if corrections.empty:
-            logger.info("  No corrections available — stopping early.")
+            logger.info("  No corrections available , stopping early.")
             break
 
         # Step 3: incremental fine-tuning
@@ -345,8 +308,7 @@ def run_hitl(
     return curves
 
 
-# ── Visualisation ─────────────────────────────────────────────────────────────
-
+#  Visualisation 
 def plot_learning_curve(curves: dict, model_key: str, out_path: Path) -> None:
     """
     Learning curve: test accuracy across HITL rounds.
@@ -401,8 +363,7 @@ def plot_all_curves(all_curves: dict, out_path: Path) -> None:
     logger.info("Combined learning curve saved → %s", out_path)
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
-
+#  Main ******************************************
 def main() -> None:
     set_seed(RANDOM_SEED)
 

@@ -1,24 +1,16 @@
 """
 ground_truth.py
-===============
-Reads every results JSON file and produces a single human-readable
-reference document (ground_truth.txt) containing every number that
-appears in the paper.
 
-Cross-check every table cell and every prose claim against this file.
-If a number in the paper does not match a number here, the paper is wrong
--- not this file -- because this file reads directly from the actual
-experimental output, with no manual transcription.
+Reads all results JSON files and generates a single reference document
+containing every number reported in the paper.  this serves to cross-check
+table cells and prose claims against the actual experimental output.
 
-Usage
------
+Usage:
     python src/ground_truth.py
 
-Output
-------
+Output:
     results/ground_truth.txt
 """
-
 import json
 import sys
 from pathlib import Path

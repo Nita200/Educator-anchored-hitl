@@ -1,25 +1,24 @@
 """
 01_data_preparation.py
-======================
-Loads the FULL MedNLI dataset, maps labels to nursing safety categories,
-generates BioGPT rationales in three student voices for ALL records, and
-saves the complete train/validation/test splits.
+----------------------
+Loads MedNLI (train/validation/test splits), maps NLI labels to clinical
+reasoning safety categories (safe, unsafe, ambiguous), and generates
+BioGPT rationales in three student voices (novice, clinical, confident)
+for all records. Outputs both rationale-augmented and plain CSV files
+for downstream training and ablation.
 
-Checkpointing: rationales are saved every 500 records so if the server
-disconnects mid-run, the script resumes from where it left off.
-
-Usage
------
+Usage:
     python src/01_data_preparation.py
 
-Output
-------
+Outputs:
     data/train_full_with_rationales.csv        (~11,232 records)
     data/validation_full_with_rationales.csv   (~1,395 records)
     data/test_full_with_rationales.csv         (~1,422 records)
     data/train_full.csv
     data/validation_full.csv
     data/test_full.csv
+
+
 """
 
 import csv
@@ -40,17 +39,14 @@ logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s — %(levelname)s — %(message)s")
 logger = logging.getLogger(__name__)
 
-# ── Checkpoint settings ───────────────────────────────────────────────────────
-CHECKPOINT_EVERY = 500   # Save progress every N records
+#  Checkpoint settings 
+CHECKPOINT_EVERY = 500   # Save progress every N=500 records
 
 
-# ── 1. Load full MedNLI ───────────────────────────────────────────────────────
+#  1. Load full MedNLI
 
 def load_mednli() -> dict:
-    """
-    Load the full MedNLI dataset from presencesw/mednli.
-    Uses original train/validation/test splits.
-    """
+   
     logger.info("Loading full MedNLI dataset ...")
     dataset = load_dataset("presencesw/mednli")
 
@@ -71,11 +67,11 @@ def load_mednli() -> dict:
     return splits
 
 
-# ── 2. Map labels ─────────────────────────────────────────────────────────────
+# 2. Map labels 
 
 def map_labels(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Map MedNLI inference labels to nursing safety labels:
+    
         entailment    → safe      (0)
         contradiction → unsafe    (1)
         neutral       → ambiguous (2)
@@ -91,11 +87,11 @@ def map_labels(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ── 3. Rationale generator ────────────────────────────────────────────────────
+# 3. Rationale generator 
 
 class RationaleGenerator:
     """
-    Generates domain-appropriate clinical rationales using BioGPT
+    Generates clinical rationales using BioGPT
     in three student voices: novice, clinical, and confident.
     """
 
@@ -137,7 +133,7 @@ def assign_voice(label: str) -> str:
             "ambiguous": "clinical"}.get(label, "clinical")
 
 
-# ── 4. Generate rationales with checkpointing ─────────────────────────────────
+#  4. Generate rationales with checkpointing 
 
 def generate_with_checkpoint(
     df: pd.DataFrame,
@@ -145,10 +141,7 @@ def generate_with_checkpoint(
     checkpoint_path: Path,
     split_name: str,
 ) -> pd.DataFrame:
-    """
-    Generate rationales for all records with checkpoint saving every
-    CHECKPOINT_EVERY records. If a checkpoint exists, resumes from there.
-    """
+   
     df = df.copy()
 
     # Resume from checkpoint if it exists
@@ -219,13 +212,10 @@ def generate_with_checkpoint(
     return result_df
 
 
-# ── 5. Save splits ─────────────────────────────────────────────────────────────
+# 5. Save splits 
 
 def save_split(df: pd.DataFrame, name: str) -> None:
-    """
-    Save a split to CSV using QUOTE_ALL to prevent comma/newline issues
-    in the generated_rationale field.
-    """
+   
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     path = DATA_DIR / f"{name}_with_rationales.csv"
 
@@ -240,7 +230,7 @@ def save_split(df: pd.DataFrame, name: str) -> None:
     logger.info("Saved base split → %s", base_path.name)
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+#  Main 
 
 def main() -> None:
     set_seed(RANDOM_SEED)
@@ -253,7 +243,7 @@ def main() -> None:
     for name in splits:
         splits[name] = map_labels(splits[name])
 
-    # Load BioGPT once — shared across all splits
+    # Load BioGPT once  
     generator = RationaleGenerator()
 
     # Generate rationales for each split with checkpointing

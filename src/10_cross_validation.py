@@ -49,7 +49,7 @@ logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s — %(levelname)s — %(message)s")
 logger = logging.getLogger(__name__)
 
-# ── Fold configuration ─────────────────────────────────────────────────────
+# Fold configuration 
 FOLD_SEEDS = [42, 123, 456, 789, 2024]
 SEED_FRACTION_CV = 0.70   # consistent with the main v3 (seed70) experiments
 
@@ -57,7 +57,7 @@ CV_DIR = RESULTS_DIR / "cv"
 CV_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# ── Version-agnostic TrainingArguments helper ─────────────────────────────────
+#  Version-agnostic TrainingArguments helper 
 
 def make_training_args(output_dir, **kwargs):
     """
@@ -70,14 +70,14 @@ def make_training_args(output_dir, **kwargs):
     return TrainingArguments(output_dir=str(output_dir), **kwargs)
 
 
-# ── Tokenisation helper ────────────────────────────────────────────────────────
+#  Tokenisation helper 
 
 def tokenize_texts(tokenizer, texts):
     return tokenizer(texts, padding=True, truncation=True,
                      max_length=MAX_INPUT_LENGTH, return_tensors="pt")
 
 
-# ── Single fold-model HITL run ──────────────────────────────────────────────────
+#  Single fold-model HITL run 
 
 def run_fold(fold_seed: int, model_key: str,
             train_df: pd.DataFrame, val_df: pd.DataFrame,
@@ -93,14 +93,14 @@ def run_fold(fold_seed: int, model_key: str,
 
     set_seed(fold_seed)
 
-    # ── Split into seed / pool using this fold's seed ─────────────────────────
+    #  Split into seed / pool using this fold's seed 
     shuffled  = train_df.sample(frac=1.0, random_state=fold_seed).reset_index(drop=True)
     n_seed    = int(len(shuffled) * SEED_FRACTION_CV)
     seed_df   = shuffled.iloc[:n_seed].reset_index(drop=True)
     pool_df   = shuffled.iloc[n_seed:].reset_index(drop=True)
     logger.info("Seed: %d | Pool: %d", len(seed_df), len(pool_df))
 
-    # ── Load fresh pretrained model (not reusing other folds' weights) ────────
+    #  Load fresh pretrained model (not reusing other folds' weights) 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model     = AutoModelForSequenceClassification.from_pretrained(
         model_name, num_labels=NUM_LABELS,
@@ -115,11 +115,8 @@ def run_fold(fold_seed: int, model_key: str,
     output_dir = MODELS_DIR / "cv_tmp" / f"fold{fold_seed}_{model_key}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # ── Baseline training on seed set ──────────────────────────────────────────
-    # FIX: previously trained for 3 fixed epochs with no validation monitoring,
-    # silently diverging from 04_hitl.py's load_best_model_at_end behaviour.
-    # Now mirrors the original methodology exactly: evaluate each epoch on the
-    # held-out validation set, select the best checkpoint by macro F1.
+   # Baseline training on seed set , mirrors 04_hitl.py exactly:
+   # evaluate each epoch on validation set, select best checkpoint by macro F1.
     seed_texts = [build_input_text(r) for _, r in seed_df.iterrows()]
     seed_enc   = tokenize_texts(tokenizer, seed_texts)
     seed_dataset = ClinicalDataset(seed_enc, seed_df["label"].tolist())
@@ -154,7 +151,7 @@ def run_fold(fold_seed: int, model_key: str,
     )
     trainer.train()
 
-    # ── Evaluate seed model (round 0) ────────────────────────────────────────
+    #  Evaluate seed model (round 0) 
     def evaluate_on_test():
         raw = trainer.predict(test_dataset)
         logits = raw.predictions
@@ -175,7 +172,7 @@ def run_fold(fold_seed: int, model_key: str,
 
     remaining_pool = pool_df.copy().reset_index(drop=True)
 
-    # ── HITL rounds ───────────────────────────────────────────────────────────
+    #  HITL rounds 
     for rnd in range(1, HITL_ROUNDS + 1):
         if len(remaining_pool) == 0:
             logger.info("Pool exhausted at round %d — stopping.", rnd)
@@ -250,7 +247,7 @@ def run_fold(fold_seed: int, model_key: str,
     return curve
 
 
-# ── Aggregation ──────────────────────────────────────────────────────────────
+#  Aggregation 
 
 def aggregate_cv_results() -> dict:
     """
@@ -306,7 +303,7 @@ def write_summary(summary: dict) -> None:
     (RESULTS_DIR / "cv_summary.txt").write_text(text)
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+#  Main 
 
 def main() -> None:
     train_df = load_split(DATA_DIR / "train_full_with_rationales.csv")
@@ -331,7 +328,7 @@ def main() -> None:
             logger.info("Progress: %d / %d fold-model runs complete.",
                        completed, total_runs)
 
-    # ── Aggregate and report ─────────────────────────────────────────────────
+    # Aggregate and report 
     summary = aggregate_cv_results()
     save_results(summary, RESULTS_DIR / "cv_summary.json")
     write_summary(summary)

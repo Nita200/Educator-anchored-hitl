@@ -1,23 +1,22 @@
 """
 07_plot_learning_curves.py
-==========================
-Generates publication-quality learning curve figures for all three
-HITL configurations (v1, v2, v3).
+###################################
+Generates learning curve figures for all three HITL configurations
+(v1, v2, v3). Reads directly from the three results JSON files 
+NB: to be rerun after any change to those files to regenerate all figures.
 
 Figures produced:
-    Figure 2a — v1 accuracy curves (catastrophic forgetting)
-    Figure 2b — v1 AUC curves
-    Figure 3a — v3 accuracy curves (optimised)
-    Figure 3b — v3 AUC curves
-    Figure 4   — Three-version comparison for PubMedBERT (accuracy)
-    Figure 5   — Three-version AUC comparison for all models
+    fig2a — v1 accuracy curves (catastrophic forgetting baseline)
+    fig2b — v1 AUC curves
+    fig3a — v3 accuracy curves (optimised configuration)
+    fig3b — v3 AUC curves
+    fig4  — three-version accuracy comparison for PubMedBERT
+    fig5  — three-version AUC comparison for all models
 
-Usage
------
+Usage:
     python src/07_plot_learning_curves.py
 
-Output
-------
+Outputs:
     results/figures/fig2a_v1_accuracy.png
     results/figures/fig2b_v1_auc.png
     results/figures/fig3a_v3_accuracy.png
@@ -25,7 +24,6 @@ Output
     results/figures/fig4_version_comparison_pubmedbert.png
     results/figures/fig5_auc_version_comparison.png
 """
-
 import json
 import logging
 from pathlib import Path
@@ -40,7 +38,7 @@ logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s — %(levelname)s — %(message)s")
 logger = logging.getLogger(__name__)
 
-# ── Style ─────────────────────────────────────────────────────────────────────
+# Style 
 plt.rcParams.update({
     "font.family":       "serif",
     "font.size":         11,
@@ -57,7 +55,7 @@ plt.rcParams.update({
     "grid.alpha":        0.4,
 })
 
-# ── Colours (greyscale-friendly) ──────────────────────────────────────────────
+# Colours (greyscale-friendly) 
 COLORS = {
     "pubmedbert":   "#1f77b4",   # steelblue
     "clinicalbert": "#d62728",   # brick red
@@ -83,7 +81,7 @@ OUT_DIR = RESULTS_DIR / "figures"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# ── Data loading ──────────────────────────────────────────────────────────────
+#  Data loading 
 
 def load_results(filename: str) -> dict:
     path = RESULTS_DIR / filename
@@ -94,7 +92,7 @@ def load_results(filename: str) -> dict:
         return json.load(f)
 
 
-# ── Plot helpers ──────────────────────────────────────────────────────────────
+#  Plot helpers 
 
 def integer_xticks(ax, rounds):
     """Ensure x-axis uses only integer tick marks."""
@@ -109,14 +107,14 @@ def add_baseline_line(ax, value, color, label=None):
                linewidth=1.0, alpha=0.5, label=label)
 
 
-# ── Figure 2: v1 learning curves (catastrophic forgetting) ───────────────────
+#  Figure 2: v1 learning curves (catastrophic forgetting) 
 
 def plot_v1_curves(v1: dict) -> None:
     if not v1:
         logger.warning("v1 results not found — skipping Figure 2.")
         return
 
-    # 2a — Accuracy
+    # 2a  Accuracy
     fig, ax = plt.subplots(figsize=(8, 4.5))
     for model_key, curves in v1.items():
         rounds   = curves["round"]
@@ -172,7 +170,7 @@ def plot_v1_curves(v1: dict) -> None:
     logger.info("Saved → %s", path)
 
 
-# ── Figure 3: v3 learning curves (optimised) ─────────────────────────────────
+# Figure 3: v3 learning curves (optimized) 
 
 def plot_v3_curves(v3: dict) -> None:
     if not v3:
@@ -197,7 +195,7 @@ def plot_v3_curves(v3: dict) -> None:
     integer_xticks(ax, rounds)
     ax.legend(loc="lower right")
 
-    # Annotate ClinicalBERT improvement
+    # 
     cb = v3.get("clinicalbert")
     if cb:
         final_round = cb["round"][-1]
@@ -249,7 +247,7 @@ def plot_v3_curves(v3: dict) -> None:
     logger.info("Saved → %s", path)
 
 
-# ── Figure 4: Three-version comparison — PubMedBERT accuracy ─────────────────
+#  Figure 4: Three-version comparison  PubMedBERT accuracy 
 
 def plot_version_comparison(v1: dict, v2: dict, v3: dict) -> None:
     model_key = "pubmedbert"
@@ -299,10 +297,10 @@ def plot_version_comparison(v1: dict, v2: dict, v3: dict) -> None:
 
     ax.set_xlabel("HITL Round")
     ax.set_ylabel("AUC")
-    ax.set_title(f"PubMedBERT — AUC Across Configurations")
+    ax.set_title(f"PubMedBERT:  AUC Across Configurations")
     ax.legend(loc="lower right", fontsize=8)
 
-    fig.suptitle("Figure 4 — Three-Version HITL Comparison: PubMedBERT",
+    fig.suptitle("Figure 4 : Three-Version HITL Comparison: PubMedBERT",
                  fontsize=13, fontweight="bold", y=1.01)
     fig.tight_layout()
     path = OUT_DIR / "fig4_version_comparison_pubmedbert.png"
@@ -311,7 +309,7 @@ def plot_version_comparison(v1: dict, v2: dict, v3: dict) -> None:
     logger.info("Saved → %s", path)
 
 
-# ── Figure 5: AUC stability across all models — v1 vs v3 ─────────────────────
+# Figure 5: AUC stability across all models  v1 vs v3 
 
 def plot_auc_version_all(v1: dict, v3: dict) -> None:
     models = ["pubmedbert", "clinicalbert", "roberta"]
@@ -362,7 +360,7 @@ def plot_auc_version_all(v1: dict, v3: dict) -> None:
     logger.info("Saved → %s", path)
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# Main 
 
 def main() -> None:
     logger.info("Loading HITL results ...")

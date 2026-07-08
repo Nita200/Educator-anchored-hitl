@@ -1,25 +1,19 @@
 """
 06_bootstrap_ci.py
-==================
-Computes 95% bootstrap confidence intervals for all metrics across:
-    - Baseline ML models
-    - Transformer models (with and without rationale)
-    - HITL v3 final round results
+++++++++++++++++++++++++++++++++++++++++++
+Computes 95% bootstrap confidence intervals (n=1,000) for accuracy,
+macro F1, AUC, and MCC across baseline ML models, transformer models
+(with and without rationale), and HITL v3 final-round results.
 
-Bootstrap resampling draws n_bootstrap samples with replacement from the
-test set predictions, computing metrics each time. The 2.5th and 97.5th
-percentiles of the bootstrap distribution form the 95% CI.
+Resamples test set predictions with replacement , no retraining required.
+The 2.5th and 97.5th percentiles of the bootstrap distribution form each CI.
 
-No retraining required — uses saved predictions and results JSON files.
-
-Usage
------
+Usage:
     python src/06_bootstrap_ci.py
 
-Output
-------
+Outputs:
     results/bootstrap_ci.json
-    results/bootstrap_ci_summary.txt   (human-readable table)
+    results/bootstrap_ci_summary.txt
 """
 
 import json
@@ -51,7 +45,7 @@ ALPHA        = 1 - CONFIDENCE
 HITL_MODELS  = ["pubmedbert", "clinicalbert", "roberta"]
 
 
-# ── Bootstrap engine ──────────────────────────────────────────────────────────
+#  Bootstrap engine 
 
 def bootstrap_metrics(y_true: np.ndarray,
                       y_pred: np.ndarray,
@@ -118,7 +112,7 @@ def bootstrap_metrics(y_true: np.ndarray,
     }
 
 
-# ── Prediction helpers ────────────────────────────────────────────────────────
+#  Prediction helpers 
 
 def get_predictions_transformer(model_key: str,
                                  model_path: Path,
@@ -134,7 +128,7 @@ def get_predictions_transformer(model_key: str,
         else:
             raise FileNotFoundError(f"No config.json or checkpoints in {model_path}")
 
-    # Load tokenizer — fall back to HuggingFace if not saved in checkpoint
+    # Load tokenizer fall back to HF if not saved in checkpoint
     try:
         tokenizer = AutoTokenizer.from_pretrained(str(model_path))
     except OSError:
@@ -180,7 +174,6 @@ def get_predictions_baseline(model_key: str,
                               test_df: pd.DataFrame):
     """
     Retrain a baseline ML model and return test predictions.
-    Fast since these are sklearn models (~seconds each).
     """
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.linear_model import LogisticRegression
@@ -217,7 +210,7 @@ def get_predictions_baseline(model_key: str,
     return y_true, y_pred, y_prob
 
 
-# ── Summary table ─────────────────────────────────────────────────────────────
+# Summary table 
 
 def format_ci(ci_dict: dict, metric: str) -> str:
     """Format a metric with its CI as 'mean [low–high]'."""
@@ -255,7 +248,7 @@ def write_summary(all_ci: dict, path: Path) -> None:
     logger.info("Summary saved → %s", path)
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+#  Main ******************
 
 def main() -> None:
     set_seed(RANDOM_SEED)
@@ -265,7 +258,7 @@ def main() -> None:
 
     all_ci = {}
 
-    # ── 1. Baseline ML models ─────────────────────────────────────────────────
+    # 1. Baseline ML models
     logger.info("Computing CIs for baseline ML models ...")
     baseline_keys = ["logistic_regression", "random_forest", "xgboost", "svm"]
     for key in baseline_keys:
@@ -275,7 +268,7 @@ def main() -> None:
         all_ci[key] = {"baseline": ci}
         save_results(all_ci, RESULTS_DIR / "bootstrap_ci.json")
 
-    # ── 2. Transformer models — with rationale ────────────────────────────────
+    #  2. Transformer models with rationale 
     logger.info("Computing CIs for transformers (with rationale) ...")
     for model_key in HITL_MODELS:
         model_path = MODELS_DIR / model_key / "best_model"
@@ -289,7 +282,7 @@ def main() -> None:
         all_ci[model_key] = {"with_rationale": ci}
         save_results(all_ci, RESULTS_DIR / "bootstrap_ci.json")
 
-    # ── 3. Transformer models — without rationale (ablation) ─────────────────
+    #  3. Transformer models — without rationale (ablation) 
     logger.info("Computing CIs for transformers (no rationale / ablation) ...")
     for model_key in HITL_MODELS:
         model_path = MODELS_DIR / f"{model_key}_ablation_no_rationale"
@@ -311,7 +304,7 @@ def main() -> None:
         all_ci[model_key]["no_rationale"] = ci
         save_results(all_ci, RESULTS_DIR / "bootstrap_ci.json")
 
-    # ── 4. HITL v3 — seed baseline (round 0) and final round ─────────────────
+    # ── 4. HITL C3 : seed baseline (round 0) and final round 
     logger.info("Computing CIs for HITL v3 models ...")
     for model_key in HITL_MODELS:
         # Final HITL model
@@ -327,7 +320,7 @@ def main() -> None:
         all_ci[hitl_key] = {"hitl_v3_final": ci}
         save_results(all_ci, RESULTS_DIR / "bootstrap_ci.json")
 
-    # ── Write summary ─────────────────────────────────────────────────────────
+    #  Write summary *************************
     write_summary(all_ci, RESULTS_DIR / "bootstrap_ci_summary.txt")
     logger.info("Bootstrap CI computation complete.")
     logger.info("Results → %s", RESULTS_DIR / "bootstrap_ci.json")

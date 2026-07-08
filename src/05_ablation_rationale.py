@@ -1,21 +1,20 @@
 """
 05_ablation_rationale.py
-========================
-Ablation study: evaluates whether BioGPT-generated rationales contribute
-meaningful signal to model performance.
+***************************************
+Evaluates whether BioGPT-generated rationales improve classification
+performance for PubMedBERT, ClinicalBERT, and RoBERTa.
 
-Condition A — WITHOUT rationale: input = scenario + judgment only
-Condition B — WITH rationale:    input = scenario + judgment + rationale (Table 1)
+Two conditions:
+    With rationale    : scenario + judgment + BioGPT rationale (standard)
+    Without rationale : scenario + judgment only (ablation)
 
-Three models are evaluated: PubMedBERT, ClinicalBERT, RoBERTa.
-Results are compared against the existing transformer_results.json (Condition B).
+Without-rationale results are saved to ablation_results.json for
+comparison against transformer_results.json in 06_bootstrap_ci.py.
 
-Usage
------
+Usage:
     python src/05_ablation_rationale.py
 
-Output
-------
+Outputs:
     results/ablation_results.json
     results/figures/ablation_comparison.png
 """
@@ -41,15 +40,15 @@ logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s — %(levelname)s — %(message)s")
 logger = logging.getLogger(__name__)
 
-# ── Ablation models — the three HITL candidates ───────────────────────────────
+# Ablation models :the three HITL candidates 
 ABLATION_MODELS = ["pubmedbert", "clinicalbert", "roberta"]
 
 
-# ── Input builder WITHOUT rationale ──────────────────────────────────────────
+#  Input builder WITHOUT rationale 
 
 def build_input_no_rationale(row) -> str:
     """
-    Concatenate scenario and judgment ONLY — no rationale.
+    Concatenate scenario and judgment ONLY , no rationale.
     This is the ablation condition to test rationale contribution.
     """
     scenario = str(row.get("scenario", "")).strip()
@@ -57,7 +56,7 @@ def build_input_no_rationale(row) -> str:
     return f"{scenario} [SEP] {judgment}"
 
 
-# ── Tokenisation ───────────────────────────────────────────────────────────────
+# Tokenisation 
 
 def tokenise(tokenizer, texts, max_length: int = MAX_INPUT_LENGTH):
     return tokenizer(
@@ -69,7 +68,7 @@ def tokenise(tokenizer, texts, max_length: int = MAX_INPUT_LENGTH):
     )
 
 
-# ── Single model training ──────────────────────────────────────────────────────
+#  Single model training 
 
 def run_ablation_model(
     model_key: str,
@@ -157,8 +156,7 @@ def run_ablation_model(
     return metrics
 
 
-# ── Visualisation ──────────────────────────────────────────────────────────────
-
+# Visualisation 
 def plot_ablation(ablation_results: dict, with_rationale: dict,
                   out_path: Path) -> None:
     """
@@ -232,7 +230,7 @@ def print_comparison_table(ablation: dict, with_rat: dict) -> None:
     print("=" * 80 + "\n")
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+#  Main
 
 def main() -> None:
     set_seed(RANDOM_SEED)

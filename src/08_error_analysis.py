@@ -1,27 +1,24 @@
 """
 08_error_analysis.py
-====================
-Performs error analysis comparing model behaviour before and after HITL v3,
-and across rationale conditions.
+****************************************
+Error analysis comparing model behaviour before and after HITL v3
+refinement. Identifies which error types improved, which regressed,
+and the most common misclassification patterns across all three models.
 
 Analyses produced:
-    1. Confusion matrices — pre-HITL seed vs post-HITL final (per model)
-    2. Per-class F1 comparison — pre vs post HITL (per model)
-    3. Error type breakdown — which class improved, which regressed
-    4. Per-class F1 for ablation — with vs without rationale (PubMedBERT)
-    5. Most common error patterns (misclassified class pairs)
+    1. Confusion matrices:  pre-HITL vs post-HITL v3 (per model)
+    2. Per-class F1 comparison:  pre vs post HITL (per model)
+    3. Error type breakdown : safe/unsafe/ambiguous misclassification counts
+    4. Most common misclassified class pairs
 
-Usage
------
+Usage:
     python src/08_error_analysis.py
 
-Output
-------
+Outputs:
     results/error_analysis.json
-    results/error_analysis_summary.txt
-    results/figures/fig6a_confusion_pubmedbert.png
-    results/figures/fig6b_confusion_clinicalbert.png
-    results/figures/fig6c_confusion_roberta.png
+    results/figures/fig6_pubmedbert_confusion.png
+    results/figures/fig6_clinicalbert_confusion.png
+    results/figures/fig6_roberta_confusion.png
     results/figures/fig7_perclass_f1_hitl.png
 """
 
@@ -56,7 +53,7 @@ OUT_DIR       = RESULTS_DIR / "figures"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# ── Prediction helpers ────────────────────────────────────────────────────────
+#  Prediction helpers 
 
 def find_checkpoint(base_path: Path) -> Path:
     """Find best available checkpoint in a model directory."""
@@ -126,7 +123,7 @@ def get_predictions(model_path: Path, model_key: str,
     return y_true, y_pred
 
 
-# ── Confusion matrix plot ─────────────────────────────────────────────────────
+#  Confusion matrix plot 
 
 def plot_confusion_matrices(model_key: str,
                              y_true, y_pred_seed,
@@ -161,7 +158,7 @@ def plot_confusion_matrices(model_key: str,
     logger.info("Saved → %s", path)
 
 
-# ── Per-class F1 bar chart ────────────────────────────────────────────────────
+#  Per-class F1 bar chart 
 
 def plot_perclass_f1(all_results: dict) -> None:
     """
@@ -206,7 +203,7 @@ def plot_perclass_f1(all_results: dict) -> None:
     logger.info("Saved → %s", path)
 
 
-# ── Error pattern analysis ────────────────────────────────────────────────────
+#  Error pattern analysis 
 
 def error_patterns(y_true, y_pred, label="") -> dict:
     """
@@ -232,7 +229,7 @@ def error_patterns(y_true, y_pred, label="") -> dict:
     return {f"{tc}→{pc}": cnt for (tc, pc), cnt in ranked}
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+#  Main 
 
 def main() -> None:
     set_seed(RANDOM_SEED)
@@ -256,7 +253,7 @@ def main() -> None:
         hf_name = TRANSFORMER_MODELS[model_key]
 
         
-        # ── Pre-HITL: use full-data trained model as pre-HITL reference ──────────
+        #  Pre-HITL: use full-data trained model as pre-HITL reference 
         seed_ckpt = find_checkpoint(MODELS_DIR / model_key)
         if not seed_ckpt:
             logger.warning("  No pre-HITL model found for %s — skipping.", model_key)
@@ -264,7 +261,7 @@ def main() -> None:
         logger.info("  Pre-HITL model: %s", seed_ckpt)
         y_true_pre, y_pred_pre = get_predictions(seed_ckpt, model_key, test_df)
 
-            # ── Post-HITL: final HITL model ───────────────────────────────────────────
+            #  Post-HITL: final HITL model 
         hitl_ckpt = find_checkpoint(MODELS_DIR / f"{model_key}_hitl")
         if not hitl_ckpt:
             logger.warning("  HITL model not found for %s — skipping.", model_key)
@@ -272,7 +269,7 @@ def main() -> None:
         logger.info("  Post-HITL model: %s", hitl_ckpt)
         y_true_post, y_pred_post = get_predictions(hitl_ckpt, model_key, test_df)
 
-        # ── Per-class F1 ──────────────────────────────────────────────────────
+        #  Per-class F1 
         report_pre  = classification_report(
             y_true_pre, y_pred_pre,
             target_names=CLASS_NAMES, output_dict=True, zero_division=0
@@ -305,7 +302,7 @@ def main() -> None:
             "report_post":  report_post,
         }
 
-        # ── Error patterns ────────────────────────────────────────────────────
+        #  Error patterns 
         error_data[model_key] = {
             "pre_hitl":  error_patterns(y_true_pre,  y_pred_pre,
                                          f"{model_key} pre-HITL"),
@@ -313,18 +310,18 @@ def main() -> None:
                                          f"{model_key} post-HITL"),
         }
 
-        # ── Confusion matrices ────────────────────────────────────────────────
+        #  Confusion matrices 
         plot_confusion_matrices(
             model_key,
             y_true_pre, y_pred_pre,
             y_true_post, y_pred_post,
         )
 
-    # ── Per-class F1 figure ───────────────────────────────────────────────────
+    #  Per-class F1 figure 
     if results:
         plot_perclass_f1(results)
 
-    # ── Save results ──────────────────────────────────────────────────────────
+    #  Save results 
     output = {"per_class_f1": results, "error_patterns": error_data}
 
     # Convert numpy floats for JSON serialisation

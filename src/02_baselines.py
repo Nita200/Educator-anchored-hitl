@@ -1,16 +1,17 @@
 """
 02_baselines.py
-===============
-Trains and evaluates classical ML baselines (Logistic Regression, Random Forest,
-XGBoost) using TF-IDF features on the clinical reasoning classification task.
-All models are evaluated WITHOUT HITL to establish lower-bound performance.
+---------------
+Classical ML baseline evaluation (Logistic Regression, Random Forest,
+XGBoost, SVM) using TF-IDF features on the clinical reasoning
+classification task. Establishes pre-HITL performance benchmarks
+across accuracy, macro F1, AUC, and MCC (computed via utils.compute_metrics).
+Bootstrap confidence intervals for these models are computed separately
+in 06_bootstrap_ci.py.
 
-Usage
------
+Usage:
     python src/02_baselines.py
 
-Output
-------
+Outputs:
     results/baseline_results.json
     results/figures/baseline_comparison.png
 """
@@ -38,7 +39,7 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 
-# ── Feature extraction ────────────────────────────────────────────────────────
+#  Feature extraction 
 
 def build_tfidf_features(
     train_texts, val_texts, test_texts
@@ -58,10 +59,10 @@ def build_tfidf_features(
     return X_train, X_val, X_test, vectorizer
 
 
-# ── Model factory ─────────────────────────────────────────────────────────────
+# Model factory 
 
 def build_model(name: str):
-    """Instantiate a baseline classifier by name."""
+   
     params = BASELINE_MODELS[name]
     if name == "logistic_regression":
         return LogisticRegression(**params)
@@ -76,7 +77,7 @@ def build_model(name: str):
         raise ValueError(f"Unknown baseline model: {name}")
 
 
-# ── Training and evaluation ───────────────────────────────────────────────────
+#  Training and evaluation 
 
 def train_and_evaluate(
     model_name: str,
@@ -86,7 +87,7 @@ def train_and_evaluate(
     """
     Train a single baseline model and evaluate it on the held-out test set.
 
-    Returns a dict with accuracy, macro_f1, and auc.
+    Returns a dictionnary with accuracy, macro_f1, mcc,and auc.
     """
     logger.info("Training %s …", model_name)
     clf = build_model(model_name)
@@ -99,13 +100,13 @@ def train_and_evaluate(
         np.array(y_test), np.array(y_pred), np.array(y_prob),
         verbose=True
     )
-    logger.info("%s → accuracy: %.4f | macro_F1: %.4f | AUC: %.4f",
+    logger.info("%s → accuracy: %.4f | macro_F1: %.4f | AUC: %.4f | MCC: %.4f",
                 model_name, metrics["accuracy"],
                 metrics["macro_f1"], metrics["auc"])
     return metrics
 
 
-# ── Visualisation ─────────────────────────────────────────────────────────────
+#  Visualisation 
 
 def plot_baseline_comparison(results: dict, out_path: Path) -> None:
     """

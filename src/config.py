@@ -1,22 +1,26 @@
 """
-config.py — Central configuration for all hyperparameters and paths.
-Modify this file to adjust experimental settings without touching any other script.
+config.py
+
+Central configuration for all hyperparameters and paths.
+Edit this file to change experimental settings without modifying any script.
 
 HITL version history:
-    v1: CORRECTIONS=150, EPOCHS=2, LR=2e-5, REPLAY=0    → catastrophic forgetting
-    v2: CORRECTIONS=150, EPOCHS=2, LR=2e-5, REPLAY=50   → improved AUC, still oscillates
-    v3: CORRECTIONS=50,  EPOCHS=1, LR=5e-6, REPLAY=100  → current (all fixes applied)
+    v1: CORRECTIONS=150, EPOCHS=2, LR=2e-5, REPLAY=0    — catastrophic forgetting
+    v2: CORRECTIONS=150, EPOCHS=2, LR=2e-5, REPLAY=50   — improved AUC, still oscillates
+    v3: CORRECTIONS=50,  EPOCHS=1, LR=5e-6, REPLAY=100  — optimised configuration (current)
+
+    v1,v2,v3 are reported in the paper as C1, C2, C3 respectively.
 """
 
 from pathlib import Path
 
-# ── Directory layout ──────────────────────────────────────────────────────────
+#  Directory layout 
 ROOT        = Path(__file__).resolve().parent.parent
 DATA_DIR    = ROOT / "data"
 RESULTS_DIR = ROOT / "results"
 MODELS_DIR  = ROOT / "models"
 
-# ── Label mapping ─────────────────────────────────────────────────────────────
+#  Label mapping 
 LABEL_MAP = {
     "entailment":    "safe",
     "contradiction": "unsafe",
@@ -26,7 +30,7 @@ LABEL2ID   = {"safe": 0, "unsafe": 1, "ambiguous": 2}
 ID2LABEL   = {v: k for k, v in LABEL2ID.items()}
 NUM_LABELS = len(LABEL2ID)
 
-# ── Dataset splits ────────────────────────────────────────────────────────────
+#  Dataset splits 
 TRAIN_FILE = DATA_DIR / "train_full_with_rationales.csv"
 VAL_FILE   = DATA_DIR / "validation_full_with_rationales.csv"
 TEST_FILE  = DATA_DIR / "test_full_with_rationales.csv"
@@ -36,7 +40,7 @@ VAL_RATIO   = 0.10
 TEST_RATIO  = 0.10
 RANDOM_SEED = 42
 
-# ── Rationale generation (01_data_preparation.py) ─────────────────────────────
+#  Rationale generation (01_data_preparation.py) 
 BIOGPT_MODEL      = "microsoft/biogpt"
 MAX_RATIONALE_LEN = 128
 STUDENT_VOICES    = ["novice", "clinical", "confident"]
@@ -56,7 +60,7 @@ VOICE_PROMPTS = {
     ),
 }
 
-# ── Baseline ML (02_baselines.py) ─────────────────────────────────────────────
+#  Baseline ML (02_baselines.py) 
 TFIDF_MAX_FEATURES = 10_000
 TFIDF_NGRAM_RANGE  = (1, 2)
 
@@ -73,7 +77,7 @@ BASELINE_MODELS = {
                             "random_state": RANDOM_SEED},
 }
 
-# ── Transformer fine-tuning (03_transformers.py) ──────────────────────────────
+#  Transformer fine-tuning (03_transformers.py) 
 TRANSFORMER_MODELS = {
     "t5-small":     "t5-small",
     "pubmedbert":   "microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext",
@@ -90,7 +94,7 @@ WEIGHT_DECAY     = 0.01
 NUM_TRAIN_EPOCHS = 3
 FP16             = True   # Set False if running on CPU
 
-# ── HITL workflow (04_hitl.py) — v3 configuration ─────────────────────────────
+#  HITL workflow (04_hitl.py) , v3 configuration 
 #
 # All four changes applied together for the first time in v3:
 #   1. Reduced corrections per round   (150 → 50)  : smaller, more stable updates
