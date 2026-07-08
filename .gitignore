@@ -31,3 +31,4 @@ venv/
 results/ground_truth.txt
 results/ground_truth.txt
 PUBLISHING_GUIDE.md
+demo_walkthrough.ipynb
