@@ -163,7 +163,7 @@ Final v3 HITL model checkpoints are available on HuggingFace:
   title   = {Educator-Anchored Human-in-the-Loop Learning: A Simulation
              Study of Transformer Models for Clinical Reasoning Assessment
              in Healthcare Education},
-  author  = {Nana, Vanita Kouomogne, Mark T. Markshall},
+  author  = {Nana, Vanita Kouomogne, Mark T. Marshall},
   year    = {2026},
   note    = {Manuscript under review}
 }
