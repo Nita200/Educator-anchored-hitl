@@ -1,26 +1,26 @@
 {
   "logistic_regression": {
-    "accuracy": 0.6097,
-    "macro_f1": 0.6096,
-    "auc": 0.7757,
-    "mcc": 0.4155
+    "accuracy": 0.555,
+    "macro_f1": 0.5534,
+    "auc": 0.7411,
+    "mcc": 0.3325
   },
   "random_forest": {
-    "accuracy": 0.6364,
-    "macro_f1": 0.6348,
-    "auc": 0.8123,
-    "mcc": 0.4549
+    "accuracy": 0.5642,
+    "macro_f1": 0.554,
+    "auc": 0.7619,
+    "mcc": 0.3488
   },
   "xgboost": {
-    "accuracy": 0.6371,
-    "macro_f1": 0.6366,
-    "auc": 0.8146,
-    "mcc": 0.4557
+    "accuracy": 0.5972,
+    "macro_f1": 0.5951,
+    "auc": 0.7704,
+    "mcc": 0.396
   },
   "svm": {
-    "accuracy": 0.5999,
-    "macro_f1": 0.5986,
-    "auc": 0.7709,
-    "mcc": 0.4007
+    "accuracy": 0.545,
+    "macro_f1": 0.5431,
+    "auc": 0.7318,
+    "mcc": 0.3175
   }
 }

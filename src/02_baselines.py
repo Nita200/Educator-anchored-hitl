@@ -102,7 +102,7 @@ def train_and_evaluate(
     )
     logger.info("%s → accuracy: %.4f | macro_F1: %.4f | AUC: %.4f | MCC: %.4f",
                 model_name, metrics["accuracy"],
-                metrics["macro_f1"], metrics["auc"])
+                metrics["macro_f1"], metrics["auc"], metrics["mcc"])
     return metrics
 
 

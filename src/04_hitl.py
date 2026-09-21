@@ -26,7 +26,7 @@ import torch
 from transformers import (AutoModelForSequenceClassification,
                           AutoTokenizer, Trainer, TrainingArguments)
 
-from config import (BATCH_SIZE, CORRECTIONS_PER_ROUND, DATA_DIR, FP16,
+from config import (BATCH_SIZE, CORRECTIONS_PER_ROUND, DATA_DIR, FP16, REPLAY_BUFFER_SIZE,
                     HITL_FINETUNE_EPOCHS, HITL_LEARNING_RATE,
                     HITL_MODELS, HITL_ROUNDS, ID2LABEL, LABEL2ID,
                     MAX_INPUT_LENGTH, MODELS_DIR, NUM_LABELS,
@@ -53,9 +53,10 @@ def prepare_seed_and_pool(
     
     """
     seed_df = train_df.sample(
-        frac=seed_fraction, random_state=random_state
-    ).reset_index(drop=True)
+    frac=seed_fraction, random_state=random_state
+)
     pool_df = train_df.drop(seed_df.index).reset_index(drop=True)
+    seed_df = seed_df.reset_index(drop=True)
     logger.info("Seed: %d | Pool: %d", len(seed_df), len(pool_df))
     return seed_df, pool_df
 
@@ -94,7 +95,7 @@ def baseline_train(
         per_device_train_batch_size = BATCH_SIZE,
         per_device_eval_batch_size  = BATCH_SIZE,
         learning_rate           = HITL_LEARNING_RATE,
-        evaluation_strategy     = "epoch",
+        eval_strategy     = "epoch",
         save_strategy           = "no",
         fp16                    = FP16 and torch.cuda.is_available(),
         seed                    = RANDOM_SEED,
@@ -124,7 +125,7 @@ def predict_pool(
         per_device_eval_batch_size  = BATCH_SIZE,
         fp16                        = FP16 and torch.cuda.is_available(),
         report_to                   = "none",
-        no_cuda                     = not torch.cuda.is_available(),
+        use_cpu                      = not torch.cuda.is_available(),
     )
     trainer = Trainer(model=model, args=args)
     raw     = trainer.predict(dataset)
@@ -210,7 +211,7 @@ def evaluate_on_test(
         per_device_eval_batch_size  = BATCH_SIZE,
         fp16                        = FP16 and torch.cuda.is_available(),
         report_to                   = "none",
-        no_cuda                     = not torch.cuda.is_available(),
+        use_cpu                      = not torch.cuda.is_available(),
     )
     trainer = Trainer(model=model, args=args)
     raw     = trainer.predict(test_dataset)
@@ -267,6 +268,7 @@ def run_hitl(
         "accuracy": [pre_metrics["accuracy"]],
         "macro_f1": [pre_metrics["macro_f1"]],
         "auc":      [pre_metrics["auc"]],
+        "mcc":      [pre_metrics["mcc"]],
     }
 
     # Zone 2: HITL loop
@@ -287,10 +289,22 @@ def run_hitl(
             logger.info("  No corrections available , stopping early.")
             break
 
-        # Step 3: incremental fine-tuning
-        incremental_finetune(model, tokenizer, corrections, output_dir)
+        # Step 3: sample replay buffer from seed set
+        if REPLAY_BUFFER_SIZE > 0 and len(seed_df) > 0:
+            replay_df = seed_df.sample(
+                n=min(REPLAY_BUFFER_SIZE, len(seed_df)),
+                random_state=r
+            )
+            train_batch = pd.concat(
+                [corrections, replay_df], ignore_index=True
+            )
+        else:
+            train_batch = corrections
 
-        # Step 4: evaluate on test set
+        # Step 4: incremental fine-tuning on corrections + replay
+        incremental_finetune(model, tokenizer, train_batch, output_dir)
+
+        # Step 5: evaluate on test set
         metrics = evaluate_on_test(model, tokenizer, test_df)
         logger.info("  Round %d: accuracy=%.4f | F1=%.4f | AUC=%.4f",
                     r, metrics["accuracy"], metrics["macro_f1"], metrics["auc"])
@@ -299,6 +313,7 @@ def run_hitl(
         curves["accuracy"].append(metrics["accuracy"])
         curves["macro_f1"].append(metrics["macro_f1"])
         curves["auc"].append(metrics["auc"])
+        curves["mcc"].append(metrics["mcc"])
 
     # Save final HITL model
     model.save_pretrained(str(output_dir / "final_model"))

@@ -1,20 +1,20 @@
 {
   "pubmedbert": {
-    "accuracy": 0.8354,
-    "macro_f1": 0.8356,
-    "auc": 0.9442,
-    "mcc": 0.7532
+    "accuracy": 0.8309,
+    "macro_f1": 0.8308,
+    "auc": 0.9449,
+    "mcc": 0.7464
   },
   "clinicalbert": {
-    "accuracy": 0.801,
-    "macro_f1": 0.8015,
-    "auc": 0.9255,
-    "mcc": 0.7016
+    "accuracy": 0.7932,
+    "macro_f1": 0.7926,
+    "auc": 0.9241,
+    "mcc": 0.6899
   },
   "roberta": {
-    "accuracy": 0.8066,
-    "macro_f1": 0.8065,
-    "auc": 0.9326,
-    "mcc": 0.7099
+    "accuracy": 0.8032,
+    "macro_f1": 0.803,
+    "auc": 0.9319,
+    "mcc": 0.705
   }
 }

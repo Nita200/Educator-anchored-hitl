@@ -1,32 +1,32 @@
 {
   "t5-small": {
-    "accuracy": 0.6259,
-    "macro_f1": 0.6226,
-    "auc": 0.799,
-    "mcc": 0.4399
+    "accuracy": 0.4835,
+    "macro_f1": 0.4706,
+    "auc": 0.6906,
+    "mcc": 0.2281
   },
   "pubmedbert": {
-    "accuracy": 0.8143,
-    "macro_f1": 0.8159,
-    "auc": 0.9384,
-    "mcc": 0.7227
+    "accuracy": 0.8248,
+    "macro_f1": 0.8246,
+    "auc": 0.9368,
+    "mcc": 0.7372
   },
   "clinicalbert": {
-    "accuracy": 0.8017,
-    "macro_f1": 0.8022,
-    "auc": 0.9255,
-    "mcc": 0.7027
+    "accuracy": 0.7832,
+    "macro_f1": 0.7826,
+    "auc": 0.9135,
+    "mcc": 0.6752
   },
   "distilbert": {
-    "accuracy": 0.725,
-    "macro_f1": 0.7259,
-    "auc": 0.8866,
-    "mcc": 0.5886
+    "accuracy": 0.7133,
+    "macro_f1": 0.7136,
+    "auc": 0.8798,
+    "mcc": 0.5704
   },
   "roberta": {
-    "accuracy": 0.8017,
-    "macro_f1": 0.8015,
-    "auc": 0.9331,
-    "mcc": 0.7025
+    "accuracy": 0.8063,
+    "macro_f1": 0.8057,
+    "auc": 0.9338,
+    "mcc": 0.7095
   }
 }

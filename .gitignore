@@ -32,3 +32,7 @@ results/ground_truth.txt
 results/ground_truth.txt
 PUBLISHING_GUIDE.md
 demo_walkthrough.ipynb
+src/ground_truth.py
+results/*_backup.json
+results/*_corrected_split.json
+results/*_bugged_split.json

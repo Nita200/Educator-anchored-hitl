@@ -41,22 +41,25 @@ TEST_RATIO  = 0.10
 RANDOM_SEED = 42
 
 #  Rationale generation (01_data_preparation.py) 
-BIOGPT_MODEL      = "microsoft/biogpt"
-MAX_RATIONALE_LEN = 128
+RATIONALE_MODEL   = "BioMistral/BioMistral-7B"
+MAX_RATIONALE_LEN = 200
 STUDENT_VOICES    = ["novice", "clinical", "confident"]
 
 VOICE_PROMPTS = {
-    "novice": (
-        "The patient has {sentence1}. The student thinks: {sentence2}. "
-        "Explain in simple terms why this is correct or incorrect clinically."
+    "novice":    (
+        "Clinical scenario: {sentence1} "
+        "Student judgment: {sentence2} "
+        "Clinical explanation:"
     ),
-    "clinical": (
-        "Given the clinical scenario: {sentence1}. Assessment: {sentence2}. "
-        "Provide a structured clinical rationale."
+    "clinical":  (
+        "Clinical scenario: {sentence1} "
+        "Student judgment: {sentence2} "
+        "Clinical explanation:"
     ),
     "confident": (
-        "Clinical scenario: {sentence1}. Judgement: {sentence2}. "
-        "Give a concise, authoritative clinical justification."
+        "Clinical scenario: {sentence1} "
+        "Student judgment: {sentence2} "
+        "Clinical explanation:"
     ),
 }
 
