@@ -36,3 +36,4 @@ src/ground_truth.py
 results/*_backup.json
 results/*_corrected_split.json
 results/*_bugged_split.json
+results/cv_summary_final*

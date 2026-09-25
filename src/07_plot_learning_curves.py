@@ -200,7 +200,7 @@ def plot_v3_curves(v3: dict) -> None:
     if cb:
         final_round = cb["round"][-1]
         final_acc   = cb["accuracy"][-1]
-        ax.annotate(f"ClinicalBERT +0.015\n(R0→R{final_round})",
+        ax.annotate(f"ClinicalBERT +0.017\n(R0→R{final_round})",
                     xy=(final_round, final_acc),
                     xytext=(final_round - 6, final_acc + 0.015),
                     arrowprops=dict(arrowstyle="->", color=COLORS["clinicalbert"], lw=1),
