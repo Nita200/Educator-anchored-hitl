@@ -109,6 +109,12 @@ def bootstrap_metrics(y_true: np.ndarray,
         "macro_f1": ci(f1_boot),
         "auc":      ci(auc_boot),
         "mcc":      ci(mcc_boot),
+        "_raw": {
+            "accuracy": acc_boot,
+            "macro_f1": f1_boot,
+            "auc":      auc_boot,
+            "mcc":      mcc_boot,
+        },
     }
 
 
@@ -302,6 +308,19 @@ def main() -> None:
         if model_key not in all_ci:
             all_ci[model_key] = {}
         all_ci[model_key]["no_rationale"] = ci
+
+        # Bootstrap p-value on difference distribution (with - no rationale)
+        with_boot = all_ci[model_key]["with_rationale"]["_raw"]
+        no_boot   = ci["_raw"]
+        pvals = {}
+        for metric in ["accuracy", "macro_f1", "auc", "mcc"]:
+            diff = [w - n for w, n in zip(with_boot[metric], no_boot[metric])]
+            # two-tailed: proportion of bootstrap samples where diff >= 0
+            pvals[metric] = round(sum(1 for d in diff if d >= 0) / len(diff), 4)
+        all_ci[model_key]["p_value_with_vs_no_rationale"] = pvals
+        # Remove raw distributions to keep JSON compact
+        del all_ci[model_key]["with_rationale"]["_raw"]
+        del all_ci[model_key]["no_rationale"]["_raw"]
         save_results(all_ci, RESULTS_DIR / "bootstrap_ci.json")
 
     # ── 4. HITL C3 : seed baseline (round 0) and final round 
@@ -321,6 +340,12 @@ def main() -> None:
         save_results(all_ci, RESULTS_DIR / "bootstrap_ci.json")
 
     #  Write summary *************************
+    # Remove _raw distributions before final save
+    for model_key in all_ci:
+        for condition in all_ci[model_key]:
+            if isinstance(all_ci[model_key][condition], dict):
+                all_ci[model_key][condition].pop("_raw", None)
+    save_results(all_ci, RESULTS_DIR / "bootstrap_ci.json")
     write_summary(all_ci, RESULTS_DIR / "bootstrap_ci_summary.txt")
     logger.info("Bootstrap CI computation complete.")
     logger.info("Results → %s", RESULTS_DIR / "bootstrap_ci.json")
